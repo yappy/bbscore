@@ -7,9 +7,11 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from top import parse_top
+from text import parse_text
 
 
 TOP_URL = "https://baseball.yahoo.co.jp/npb/"
+TEXT_URL = "https://baseball.yahoo.co.jp/npb/game/2021040661/text"
 TIMEOUT_SEC = 10
 
 
@@ -40,13 +42,26 @@ def process_top(src: Path | None, full: bool):
             print(f"{obj['game_id']} {obj['league']} {obj['home_team']} - {obj['away_team']}")
 
 
+def process_text(src: Path | None, full: bool):
+    if src is None:
+        html = fetch_html(TEXT_URL)
+    else:
+        html = src.read_text(encoding="utf-8")
+    game = parse_text(html)
+
+    if full:
+        print(json.dumps(game, ensure_ascii=False, indent=2))
+    else:
+        print(f"{game['game_id']} {game['game_round']['match_date']} {game['game_round']['venue']}")
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog=argv[0],
     )
     parser.add_argument(
         "mode",
-        choices=["top", "score"],
+        choices=["top", "text", "score"],
         help="Page type to process.",
     )
     parser.add_argument(
@@ -68,6 +83,8 @@ def main(argv: list[str]) -> int:
 
     if args.mode == "top":
         process_top(args.src, args.full)
+    elif args.mode == "text":
+        process_text(args.src, args.full)
     else:
         raise RuntimeError("Unknown mode")
 
