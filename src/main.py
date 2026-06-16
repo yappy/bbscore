@@ -29,6 +29,8 @@ def _parse_game(section_title: str | None, item: Tag) -> dict[str, Any]:
     score_left = item.select_one(".bb-score__score--left")
     score_right = item.select_one(".bb-score__score--right")
     status = _text(item.select_one(".bb-score__link"))
+    home_player_selector = ".bb-score__playerHome .bb-score__player"
+    away_player_selector = ".bb-score__playerAway .bb-score__player"
 
     game: dict[str, Any] = {
         "league": section_title,
@@ -42,11 +44,11 @@ def _parse_game(section_title: str | None, item: Tag) -> dict[str, Any]:
         "away_score": _score_value(score_right),
         "home_players": [
             player.get_text(" ", strip=True)
-            for player in item.select(".bb-score__playerHome .bb-score__player")
+            for player in item.select(home_player_selector)
         ],
         "away_players": [
             player.get_text(" ", strip=True)
-            for player in item.select(".bb-score__playerAway .bb-score__player")
+            for player in item.select(away_player_selector)
         ],
     }
 
