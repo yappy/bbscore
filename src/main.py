@@ -1,10 +1,72 @@
 #!/usr/bin/env python3
 
-"""Command-line entry point for bbscore."""
-
 import argparse
+import json
 import sys
 from pathlib import Path
+from typing import Any
+
+from bs4 import BeautifulSoup
+from bs4.element import Tag
+
+
+def _text(node: Tag | None) -> str | None:
+    if node is None:
+        return None
+
+    text = node.get_text(" ", strip=True)
+    return text or None
+
+
+def _score_value(node: Tag | None) -> int | None:
+    text = _text(node)
+    if text is None:
+        return None
+    return int(text) if text.isdecimal() else None
+
+
+def _parse_game(section_title: str | None, item: Tag) -> dict[str, Any]:
+    score_left = item.select_one(".bb-score__score--left")
+    score_right = item.select_one(".bb-score__score--right")
+    status = _text(item.select_one(".bb-score__link"))
+
+    game: dict[str, Any] = {
+        "league": section_title,
+        "date": _text(item.select_one(".bb-score__date")),
+        "venue": _text(item.select_one(".bb-score__venue")),
+        "home_team": _text(item.select_one(".bb-score__homeLogo")),
+        "away_team": _text(item.select_one(".bb-score__awayLogo")),
+        "status": status,
+        "start_time": _text(item.select_one("time.bb-score__status")),
+        "home_score": _score_value(score_left),
+        "away_score": _score_value(score_right),
+        "home_players": [
+            player.get_text(" ", strip=True)
+            for player in item.select(".bb-score__playerHome .bb-score__player")
+        ],
+        "away_players": [
+            player.get_text(" ", strip=True)
+            for player in item.select(".bb-score__playerAway .bb-score__player")
+        ],
+    }
+
+    content = item.select_one("a.bb-score__content")
+    if content is not None:
+        game["url"] = content.get("href")
+
+    return game
+
+
+def parse_top(html: str) -> list[dict[str, Any]]:
+    soup = BeautifulSoup(html, "html.parser")
+    games: list[dict[str, Any]] = []
+
+    for section in soup.select("section.bb-score"):
+        section_title = _text(section.select_one(".bb-score__title"))
+        for item in section.select("li.bb-score__item"):
+            games.append(_parse_game(section_title, item))
+
+    return games
 
 
 def process_top(src: Path | None):
@@ -12,9 +74,9 @@ def process_top(src: Path | None):
         # TODO: HTTP GET
         html = ""
     else:
-        html = src.read_text()
+        html = src.read_text(encoding="utf-8")
 
-    print(html)
+    print(json.dumps(parse_top(html), ensure_ascii=False, indent=2))
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
