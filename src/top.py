@@ -1,7 +1,11 @@
+import re
 from typing import Any
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+
+
+_GAME_ID_RE = re.compile(r"/(\d+)/")
 
 
 def _text(node: Tag | None) -> str | None:
@@ -17,6 +21,14 @@ def _score_value(node: Tag | None) -> int | None:
     if text is None:
         return None
     return int(text) if text.isdecimal() else None
+
+
+def _game_id(url: str | None) -> str | None:
+    if url is None:
+        return None
+
+    match = _GAME_ID_RE.search(url)
+    return match.group(1) if match is not None else None
 
 
 def _parse_game(section_title: str | None, item: Tag) -> dict[str, Any]:
@@ -48,7 +60,12 @@ def _parse_game(section_title: str | None, item: Tag) -> dict[str, Any]:
 
     content = item.select_one("a.bb-score__content")
     if content is not None:
-        game["url"] = content.get("href")
+        url = str(content.get("href"))
+        game["url"] = url
+        game["game_id"] = _game_id(url)
+    else:
+        game["url"] = None
+        game["game_id"] = None
 
     return game
 
