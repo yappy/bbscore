@@ -3,37 +3,48 @@
 """Command-line entry point for bbscore."""
 
 import argparse
+import sys
 from pathlib import Path
+
+
+def process_top(src: Path | None):
+    if src is None:
+        # TODO: HTTP GET
+        html = ""
+    else:
+        html = src.read_text()
+
+    print(html)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="bbscore",
+        prog=argv[0],
     )
     parser.add_argument(
-        "input",
-        type=Path,
-        help="Path to the score HTML file to process.",
+        "mode",
+        choices=["top", "score"],
+        help="Page type to process.",
     )
     parser.add_argument(
-        "-o",
-        "--output",
+        "--src",
         type=Path,
-        help="Optional path to write the extracted score data.",
+        help="Path to HTML file to process. (used instead of web)",
     )
 
-    return parser.parse_args(argv)
+    return parser.parse_args(argv[1:])
 
 
-def main(argv: list[str]) -> None:
-    """Run the bbscore command-line program."""
+def main(argv: list[str]) -> int:
     args = parse_args(argv)
-    print(f"input: {args.input}")
-    if args.output is not None:
-        print(f"output: {args.output}")
+
+    if args.mode == "top":
+        process_top(args.src)
+    else:
+        raise RuntimeError("Unknown mode")
+
     return 0
 
 
 if __name__ == "__main__":
-    main()
-    raise SystemExit
+    raise SystemExit(main(sys.argv))
