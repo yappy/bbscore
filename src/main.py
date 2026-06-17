@@ -39,7 +39,10 @@ def process_top(src: Path | None, full: bool):
         print(json.dumps(games, ensure_ascii=False, indent=2))
     else:
         for obj in games:
-            print(f"{obj['game_id']} {obj['league']} {obj['home_team']} - {obj['away_team']}")
+            print(
+                f"{obj['game_id']} {obj['league']} "
+                f"{obj['home_team']} - {obj['away_team']}"
+            )
 
 
 def process_text(src: Path | None, full: bool):
@@ -52,28 +55,44 @@ def process_text(src: Path | None, full: bool):
     if full:
         print(json.dumps(game, ensure_ascii=False, indent=2))
     else:
-        print(f"{game['game_id']} {game['game_round']['match_date']} {game['game_round']['venue']}")
+        print(
+            f"{game['game_id']} {game['game_round']['match_date']} "
+            f"{game['game_round']['venue']}"
+        )
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog=argv[0],
     )
-    parser.add_argument(
-        "mode",
-        choices=["top", "text", "score"],
-        help="Page type to process.",
+
+    def add_common_options(subparser: argparse.ArgumentParser) -> None:
+        subparser.add_argument(
+            "--src",
+            type=Path,
+            help="Path to HTML file to process. (used instead of web)",
+        )
+        subparser.add_argument(
+            "--full",
+            action="store_true",
+            help="Enable full output.",
+        )
+
+    subparsers = parser.add_subparsers(required=True)
+
+    top_parser = subparsers.add_parser(
+        "top",
+        help="Process the top page.",
     )
-    parser.add_argument(
-        "--src",
-        type=Path,
-        help="Path to HTML file to process. (used instead of web)",
+    add_common_options(top_parser)
+    top_parser.set_defaults(handler=process_top)
+
+    text_parser = subparsers.add_parser(
+        "text",
+        help="Process a text page.",
     )
-    parser.add_argument(
-        "--full",
-        action="store_true",
-        help="Enable full output.",
-    )
+    add_common_options(text_parser)
+    text_parser.set_defaults(handler=process_text)
 
     return parser.parse_args(argv[1:])
 
@@ -81,12 +100,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
 
-    if args.mode == "top":
-        process_top(args.src, args.full)
-    elif args.mode == "text":
-        process_text(args.src, args.full)
-    else:
-        raise RuntimeError("Unknown mode")
+    args.handler(args.src, args.full)
 
     return 0
 
