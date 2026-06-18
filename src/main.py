@@ -11,7 +11,7 @@ from text import parse_text
 
 
 TOP_URL = "https://baseball.yahoo.co.jp/npb/"
-TEXT_URL = "https://baseball.yahoo.co.jp/npb/game/2021040661/text"
+TEXT_URL_TEMPLATE = "https://baseball.yahoo.co.jp/npb/game/{gameid}/text"
 TIMEOUT_SEC = 10
 
 
@@ -45,9 +45,11 @@ def process_top(src: Path | None, full: bool):
             )
 
 
-def process_text(src: Path | None, full: bool):
+def process_text(src: Path | None, full: bool, gameid: str | None):
     if src is None:
-        html = fetch_html(TEXT_URL)
+        if gameid is None:
+            raise ValueError("gameid is required unless --src is specified")
+        html = fetch_html(TEXT_URL_TEMPLATE.format(gameid=gameid))
     else:
         html = src.read_text(encoding="utf-8")
     game = parse_text(html)
@@ -70,7 +72,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         subparser.add_argument(
             "--src",
             type=Path,
-            help="Path to HTML file to process. (used instead of web)",
+            help="Path to HTML file to process. (as instead of web)",
         )
         subparser.add_argument(
             "--full",
@@ -85,22 +87,37 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Process the top page.",
     )
     add_common_options(top_parser)
-    top_parser.set_defaults(handler=process_top)
+    top_parser.set_defaults(
+        command="top",
+        handler=lambda args: process_top(args.src, args.full),
+    )
 
     text_parser = subparsers.add_parser(
         "text",
         help="Process a text page.",
     )
     add_common_options(text_parser)
-    text_parser.set_defaults(handler=process_text)
+    text_parser.add_argument(
+        "gameid",
+        nargs="?",
+        help="Game ID. Required unless --src is specified.",
+    )
+    text_parser.set_defaults(
+        command="text",
+        handler=lambda args: process_text(args.src, args.full, args.gameid),
+    )
 
-    return parser.parse_args(argv[1:])
+    args = parser.parse_args(argv[1:])
+    if args.command == "text" and args.src is None and args.gameid is None:
+        text_parser.error("gameid is required unless --src is specified")
+
+    return args
 
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
 
-    args.handler(args.src, args.full)
+    args.handler(args)
 
     return 0
 
