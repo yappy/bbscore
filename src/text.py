@@ -140,11 +140,13 @@ def _parse_footer(footer: Tag | None) -> dict[str, Any] | None:
 
 def _parse_section(section: Tag) -> dict[str, Any]:
     header = section.select_one("header.bb-liveText__head")
-    inning = _text(header.select_one(".bb-liveText__inning")) if header else None
-    detail = _text(header.select_one(".bb-liveText__detail")) if header else None
-
+    inning = None
+    detail = None
     team_id = None
+
     if header is not None:
+        inning = _text(header.select_one(".bb-liveText__inning"))
+        detail = _text(header.select_one(".bb-liveText__detail"))
         for class_name in header.get("class", []):
             if class_name.startswith("bb-liveText__head--npbTeam"):
                 team_id = class_name.removeprefix("bb-liveText__head--npbTeam")
@@ -157,9 +159,13 @@ def _parse_section(section: Tag) -> dict[str, Any]:
         "detail": detail,
         "plays": [
             _parse_event(item)
-            for item in section.select("ol.bb-liveText__orderedList > li.bb-liveText__item")
+            for item in section.select(
+                "ol.bb-liveText__orderedList > li.bb-liveText__item"
+            )
         ],
-        "footer": _parse_footer(section.select_one("footer.bb-liveText__footer")),
+        "footer": _parse_footer(
+            section.select_one("footer.bb-liveText__footer")
+        ),
     }
 
 
@@ -183,7 +189,8 @@ def _parse_scoreboard(table: Tag | None) -> list[dict[str, Any]]:
         team_node = cells[0].select_one(".bb-gameScoreTable__team")
         inning_values = []
         for cell in cells[1:-3]:
-            inning_values.append(_int_value(cell.select_one(".bb-gameScoreTable__score")))
+            score_node = cell.select_one(".bb-gameScoreTable__score")
+            inning_values.append(_int_value(score_node))
 
         scoreboard.append(
             {
@@ -210,7 +217,10 @@ def parse_text(html: str) -> dict[str, Any]:
         "url": game_url,
         "game_id": _game_id(game_url),
         "description": _meta_content(soup, 'meta[name="description"]'),
-        "og_description": _meta_content(soup, 'meta[property="og:description"]'),
+        "og_description": _meta_content(
+            soup,
+            'meta[property="og:description"]',
+        ),
         "keywords": _meta_content(soup, 'meta[name="keywords"]'),
         "game_round": {
             "classifications": [
@@ -222,7 +232,9 @@ def parse_text(html: str) -> dict[str, Any]:
             "venue": _text(soup.select_one(".bb-gameRound--stadium")),
         },
         "updated_at": _text(soup.select_one(".bb-tableNote__update")),
-        "scoreboard": _parse_scoreboard(soup.select_one("table.bb-gameScoreTable")),
+        "scoreboard": _parse_scoreboard(
+            soup.select_one("table.bb-gameScoreTable")
+        ),
         "sections": [
             _parse_section(section)
             for section in soup.select("section.bb-liveText")
