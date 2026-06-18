@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from top import parse_top
-from text import parse_text
+from text import parse_text, print_text
 
 
 TOP_URL = "https://baseball.yahoo.co.jp/npb/"
@@ -57,10 +57,7 @@ def process_text(src: Path | None, full: bool, gameid: str | None):
     if full:
         print(json.dumps(game, ensure_ascii=False, indent=2))
     else:
-        print(
-            f"{game['game_id']} {game['game_round']['match_date']} "
-            f"{game['game_round']['venue']}"
-        )
+        print_text(game)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:

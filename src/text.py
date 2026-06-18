@@ -241,3 +241,17 @@ def parse_text(html: str) -> dict[str, Any]:
         ],
         "game_title_id": _attr(game_round, "id"),
     }
+
+
+def print_text(game: dict[str, Any]) -> None:
+    print(f"{game['game_id']} updated at: {game['updated_at']}")
+
+    for sb in game["scoreboard"]:
+        for p in sb["innings"]:
+            if p is None:
+                print(" X", end="")
+            else:
+                # if p >= 9, format will be strange, but it will be acceptable
+                print(f" {p}", end="")
+        print(f" | {sb['total']} {sb['hits']} {sb['errors']}", end="")
+        print()
