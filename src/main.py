@@ -45,7 +45,7 @@ def process_top(src: Path | None, full: bool):
             )
 
 
-def process_text(src: Path | None, full: bool, gameid: str | None):
+def process_text(src: Path | None, full: bool, long: bool, gameid: str | None):
     if src is None:
         if gameid is None:
             raise ValueError("gameid is required unless --src is specified")
@@ -57,7 +57,7 @@ def process_text(src: Path | None, full: bool, gameid: str | None):
     if full:
         print(json.dumps(game, ensure_ascii=False, indent=2))
     else:
-        print_text(game)
+        print_text(game, long)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -95,13 +95,24 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     add_common_options(text_parser)
     text_parser.add_argument(
+        "-l",
+        "--long",
+        action="store_true",
+        help="Enable long output.",
+    )
+    text_parser.add_argument(
         "gameid",
         nargs="?",
         help="Game ID. Required unless --src is specified.",
     )
     text_parser.set_defaults(
         command="text",
-        handler=lambda args: process_text(args.src, args.full, args.gameid),
+        handler=lambda args: process_text(
+            args.src,
+            args.full,
+            args.long,
+            args.gameid,
+        ),
     )
 
     args = parser.parse_args(argv[1:])

@@ -247,7 +247,7 @@ def parse_text(html: str) -> dict[str, Any]:
     }
 
 
-def print_text(game: dict[str, Any]) -> None:
+def print_text(game: dict[str, Any], long: bool) -> None:
     print(f"{game['game_id']} updated at: {game['updated_at']}")
 
     for sb in game["scoreboard"]:
@@ -262,6 +262,7 @@ def print_text(game: dict[str, Any]) -> None:
         print(f" | {sb['total']} {sb['hits']} {sb['errors']}", end="")
         print()
 
+    count = 0
     for sec in game["sections"]:
         section_title = _join_present([sec["inning"], sec["detail"]])
         print(f"  {section_title}")
@@ -284,3 +285,7 @@ def print_text(game: dict[str, Any]) -> None:
             for summary in play["summaries"]:
                 point_mark = " (point)" if summary["point"] else ""
                 print(f"      {summary['text']}{point_mark}")
+        count += 1
+        if count >= 2 and not long:
+            print("and more ... (--long / -l to show all)")
+            break
