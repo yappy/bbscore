@@ -206,6 +206,10 @@ def _parse_scoreboard(table: Tag | None) -> list[dict[str, Any]]:
     return scoreboard
 
 
+def _join_present(values: list[str | None], separator: str = " ") -> str:
+    return separator.join(value for value in values if value is not None)
+
+
 def parse_text(html: str) -> dict[str, Any]:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -249,9 +253,34 @@ def print_text(game: dict[str, Any]) -> None:
     for sb in game["scoreboard"]:
         for p in sb["innings"]:
             if p is None:
-                print(" X", end="")
+                print("  ", end="")
+                # sayonara
+                # print(" X", end="")
             else:
                 # if p >= 9, format will be strange, but it will be acceptable
                 print(f" {p}", end="")
         print(f" | {sb['total']} {sb['hits']} {sb['errors']}", end="")
         print()
+
+    for sec in game["sections"]:
+        section_title = _join_present([sec["inning"], sec["detail"]])
+        print(f"  {section_title}")
+        for play in sec["plays"]:
+            batter = play["batter"]
+            header_parts = []
+
+            if play["number"] is not None:
+                header_parts.append(str(play["number"]))
+            if batter is not None:
+                if batter["state"] is not None:
+                    header_parts.append(batter["state"])
+                player = batter["player"]
+                if player is not None and player["name"] is not None:
+                    header_parts.append(player["name"])
+
+            if header_parts:
+                print(f"    {' '.join(header_parts)}")
+
+            for summary in play["summaries"]:
+                point_mark = " (point)" if summary["point"] else ""
+                print(f"      {summary['text']}{point_mark}")
